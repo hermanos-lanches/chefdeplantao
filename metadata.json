@@ -1,0 +1,9 @@
+{
+  "name": "Chef de Plantão",
+  "description": "Plataforma de gestão de brigada sob demanda para restaurantes e freelancers.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
