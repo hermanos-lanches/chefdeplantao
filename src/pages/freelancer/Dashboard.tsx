@@ -6,50 +6,34 @@ import { Button } from '../../components/ui/Button.tsx';
 import { ConsentModal } from '../../components/ui/ConsentModal.tsx';
 import { VerificationStatus } from '../../components/features/VerificationStatus.tsx';
 import { authService } from '../../lib/authService.ts';
-import { jobsService } from '../../lib/jobsService.ts';
+import { useJobs } from '../../hooks/useJobs.ts';
+import { useAuth } from '../../hooks/useAuth.ts';
+import { useWallet } from '../../hooks/useWallet.ts';
 import { formatCurrency } from '../../lib/utils.ts';
 import { Bell, Star, Banknote, MapPin, Clock, QrCode, ChevronRight, Loader2 } from 'lucide-react';
-import { User, Job } from '../../types';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { jobs, isLoading: isJobsLoading, acceptJob } = useJobs();
+  const { balance, isLoading: isWalletLoading } = useWallet();
   
   // Estados para os Modais de Consentimento
   const [showLocationConsent, setShowLocationConsent] = useState(false);
   const [showIdentityConsent, setShowIdentityConsent] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
-        
-        // Lógica de Onboarding: Se o usuário não estiver verificado, mostra consentimentos
-        if (currentUser && currentUser.role === 'professional') {
-          const hasSeenLocation = localStorage.getItem('consent_location');
-          if (!hasSeenLocation) {
-            setShowLocationConsent(true);
-          }
-        }
-
-        const availableJobs = await jobsService.getAvailableJobs();
-        setJobs(availableJobs);
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-      } finally {
-        setLoading(false);
+    if (!isAuthLoading && user && user.role === 'professional') {
+      const hasSeenLocation = localStorage.getItem('consent_location');
+      if (!hasSeenLocation) {
+        setShowLocationConsent(true);
       }
-    };
-    loadData();
-  }, []);
+    }
+  }, [user, isAuthLoading]);
 
   const handleLocationAccept = () => {
     localStorage.setItem('consent_location', 'true');
     setShowLocationConsent(false);
-    // Após aceitar localização, se não for verificado, sugere verificação de identidade
     if (user?.role === 'professional' && !localStorage.getItem('consent_identity')) {
       setShowIdentityConsent(true);
     }
@@ -58,10 +42,10 @@ export const Dashboard: React.FC = () => {
   const handleIdentityAccept = () => {
     localStorage.setItem('consent_identity', 'true');
     setShowIdentityConsent(false);
-    navigate('/freelancer/profile'); // Direciona para completar o perfil/upload
+    navigate('/freelancer/profile');
   };
 
-  if (loading) {
+  if (isAuthLoading || isJobsLoading || isWalletLoading) {
     return (
       <div className="bg-[#0f0f10] min-h-screen flex items-center justify-center">
         <Loader2 className="text-orange-500 animate-spin" size={48} />
@@ -71,7 +55,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="bg-[#0f0f10] min-h-screen pb-32 relative overflow-x-hidden">
-      {/* Modais de Consentimento */}
       <ConsentModal 
         isOpen={showLocationConsent} 
         type="location" 
@@ -85,12 +68,11 @@ export const Dashboard: React.FC = () => {
         onAccept={handleIdentityAccept} 
       />
 
-      {/* Header */}
       <header className="sticky top-0 z-30 bg-[#0f0f10]/80 backdrop-blur-xl px-6 pt-14 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative h-14 w-14 rounded-3xl overflow-hidden border border-white/10">
             <img 
-              src={user?.photoUrl || 'https://i.pravatar.cc/150?u=thiago'} 
+              src={user?.photoUrl || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=f97316&color=fff`} 
               alt="Profile" 
               className="h-full w-full object-cover"
             />
@@ -98,7 +80,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-medium text-gray-400">Bem-vindo de volta,</span>
-            <h1 className="text-xl font-bold text-white">Chef {user?.name.split(' ')[0] || 'Thiago'}</h1>
+            <h1 className="text-xl font-bold text-white">{user?.name.split(' ')[0] || 'Chef'}</h1>
           </div>
         </div>
         <button className="relative h-12 w-12 flex items-center justify-center rounded-3xl bg-[#1c1c1e] border border-white/5">
@@ -108,7 +90,6 @@ export const Dashboard: React.FC = () => {
       </header>
 
       <main className="px-6 space-y-8">
-        {/* Status de Verificação (Fase 5) */}
         {user?.role === 'professional' && (
           <section>
             <VerificationStatus 
@@ -117,7 +98,6 @@ export const Dashboard: React.FC = () => {
           </section>
         )}
 
-        {/* Stats Grid */}
         <section className="grid grid-cols-2 gap-4">
           <div className="bg-[#1c1c1e] p-5 rounded-3xl border border-white/5 space-y-4">
             <div className="flex items-center gap-2.5">
@@ -128,10 +108,10 @@ export const Dashboard: React.FC = () => {
             </div>
             <div>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white">{user?.rating || '4.9'}</span>
+                <span className="text-3xl font-bold text-white">{user?.rating || '5.0'}</span>
                 <span className="text-sm text-gray-500">/ 5.0</span>
               </div>
-              <p className="text-[11px] text-green-500 font-bold mt-1">Top 5% da região</p>
+              <p className="text-[11px] text-green-500 font-bold mt-1">Perfil em destaque</p>
             </div>
           </div>
 
@@ -140,24 +120,23 @@ export const Dashboard: React.FC = () => {
               <div className="h-9 w-9 rounded-2xl bg-green-500/10 flex items-center justify-center">
                 <Banknote size={18} className="text-green-500" />
               </div>
-              <span className="text-xs font-bold text-gray-400">Ganhos da Semana</span>
+              <span className="text-xs font-bold text-gray-400">Saldo Carteira</span>
             </div>
             <div>
-              <span className="text-3xl font-bold text-white">R$ 1.200</span>
-              <p className="text-[11px] text-gray-500 font-bold mt-1">+ R$ 180 pendente</p>
+              <span className="text-3xl font-bold text-white">{formatCurrency(balance || 0)}</span>
+              <p className="text-[11px] text-gray-500 font-bold mt-1">Disponível para saque</p>
             </div>
           </div>
         </section>
 
-        {/* Vagas Section */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">Vagas Disponíveis</h2>
-            <button className="text-sm font-bold text-orange-500">Ver todas</button>
+            <button className="text-sm font-bold text-orange-500" onClick={() => navigate('/freelancer/jobs')}>Ver todas</button>
           </div>
 
           <div className="space-y-6">
-            {jobs.length > 0 ? jobs.map((job) => (
+            {jobs && jobs.length > 0 ? jobs.map((job) => (
               <div key={job.id} className="relative group overflow-hidden rounded-[32px] bg-[#1c1c1e] border border-white/5 shadow-2xl">
                 <div className="absolute inset-0 z-0">
                   <img src={job.restaurantLogo || 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?q=80&w=2070'} className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700" alt="" />
@@ -180,7 +159,7 @@ export const Dashboard: React.FC = () => {
                       <p className="text-gray-300 font-medium mt-1">{job.role}</p>
                     </div>
                     <div className="h-14 w-14 rounded-2xl overflow-hidden border border-white/20 shadow-xl">
-                      <img src={job.restaurantLogo || 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=100&h=100&fit=crop'} className="w-full h-full object-cover" alt="" />
+                      <img src={job.restaurantLogo || `https://ui-avatars.com/api/?name=${job.restaurantName}&background=f97316&color=fff`} className="w-full h-full object-cover" alt="" />
                     </div>
                   </div>
 
@@ -200,39 +179,22 @@ export const Dashboard: React.FC = () => {
                     variant="primary" 
                     size="lg" 
                     className="rounded-[20px] h-16 text-lg bg-orange-500 hover:bg-orange-600"
-                    onClick={() => user && jobsService.acceptJob(job.id, user.id)}
+                    onClick={() => acceptJob.mutate(job.id)}
+                    disabled={acceptJob.isPending}
                   >
-                    Aceitar Vaga
+                    {acceptJob.isPending ? 'Processando...' : 'Aceitar Vaga'}
                   </Button>
                 </div>
               </div>
             )) : (
-              <div className="text-center py-10">
+              <div className="text-center py-10 bg-[#1c1c1e] rounded-[32px] border border-dashed border-white/10">
                 <p className="text-gray-500 font-bold">Nenhuma vaga disponível no momento.</p>
+                <p className="text-xs text-gray-600 mt-2">Fique de olho! Novas oportunidades surgem a todo instante.</p>
               </div>
             )}
           </div>
         </section>
       </main>
-
-      {/* Active Shift Floating Card */}
-      <div className="fixed bottom-28 left-6 right-6 z-40">
-        <div 
-          onClick={() => navigate('/freelancer/check-in')}
-          className="bg-orange-500 p-4 rounded-[28px] shadow-2xl shadow-orange-500/30 flex items-center gap-4 cursor-pointer active:scale-95 transition-all"
-        >
-          <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-orange-500 shadow-inner">
-            <QrCode size={28} />
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-black text-white/80 uppercase tracking-widest">Plantão Ativo • Hoje</p>
-            <h4 className="text-lg font-bold text-white">Check-in: Le Cordon Bleu</h4>
-          </div>
-          <div className="h-10 w-10 rounded-full bg-black/10 flex items-center justify-center text-white">
-            <ChevronRight size={24} />
-          </div>
-        </div>
-      </div>
 
       <BottomNav />
     </div>
