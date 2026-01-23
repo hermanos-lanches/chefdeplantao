@@ -4,6 +4,7 @@ import { Login } from './src/pages/Login.tsx';
 import { Register } from './src/pages/Register.tsx';
 import { Terms } from './src/pages/Terms.tsx';
 import { Dashboard as FreelancerDashboard } from './src/pages/freelancer/Dashboard.tsx';
+import { Onboarding as FreelancerOnboarding } from './src/pages/freelancer/Onboarding.tsx';
 import { Shifts } from './src/pages/freelancer/Shifts.tsx';
 import { Wallet } from './src/pages/freelancer/Wallet.tsx';
 import { Profile } from './src/pages/freelancer/Profile.tsx';
@@ -29,6 +30,7 @@ const App: React.FC = () => {
         <Route path="/freelancer">
           <Route index element={<Navigate to="/freelancer/dashboard" replace />} />
           <Route path="dashboard" element={<FreelancerDashboard />} />
+          <Route path="onboarding" element={<FreelancerOnboarding />} />
           <Route path="job/:id" element={<JobDetails />} />
           <Route path="shifts" element={<Shifts />} />
           <Route path="wallet" element={<Wallet />} />
