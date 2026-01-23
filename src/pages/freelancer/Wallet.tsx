@@ -1,99 +1,181 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BottomNav } from '../../components/layout/BottomNav.tsx';
-import { transactions, currentUser } from '../../lib/mockData.ts';
-import { formatCurrency, formatDate } from '../../lib/utils.ts';
+import { Button } from '../../components/ui/Button.tsx';
+import { Badge } from '../../components/ui/Badge.tsx';
+import { authService } from '../../lib/authService.ts';
+import { transactionsService } from '../../lib/transactionsService.ts';
+import { formatCurrency, formatDate, cn } from '../../lib/utils.ts';
+import { Bell, Wallet as WalletIcon, QrCode, ArrowUpRight, Utensils, ChevronRight, Loader2 } from 'lucide-react';
+import { User, Transaction } from '../../types';
 
 export const Wallet: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+        if (currentUser) {
+          const data = await transactionsService.getMyTransactions(currentUser.id);
+          setTransactions(data);
+        }
+      } catch (error) {
+        console.error('Error loading wallet data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const totalBalance = transactions.reduce((acc, t) => 
+    t.type === 'credit' ? acc + t.amount : acc - t.amount, 0
+  );
+
+  if (loading) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center">
+        <Loader2 className="text-primary animate-spin" size={48} />
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-background-dark min-h-screen pb-24">
-      <header className="sticky top-0 z-30 bg-background-dark/80 backdrop-blur-md px-6 pt-12 pb-4 border-b border-white/5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="h-10 w-10 rounded-full bg-cover bg-center border-2 border-surface-highlight shadow-sm" style={{ backgroundImage: `url(${currentUser.photoUrl})` }}></div>
-            <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-background-dark"></div>
+    <div className="bg-background min-h-screen pb-32 relative overflow-x-hidden">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl px-6 pt-14 pb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative h-14 w-14 rounded-3xl overflow-hidden border border-white/10">
+            <img 
+              src={user?.photoUrl || 'https://i.pravatar.cc/150?u=thiago'} 
+              alt="Profile" 
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-background"></div>
           </div>
-          <div>
-            <p className="text-xs text-gray-400 font-medium">Bem-vindo,</p>
-            <h3 className="text-sm font-bold leading-tight text-white">{currentUser.name}</h3>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-gray-400">Bem-vindo,</span>
+            <h1 className="text-xl font-bold text-white">Chef {user?.name.split(' ')[0] || 'Thiago'}</h1>
           </div>
         </div>
-        <button className="h-10 w-10 flex items-center justify-center rounded-full bg-surface-dark border border-white/5 text-white active:scale-95 transition-transform relative">
-          <span className="material-symbols-outlined text-[20px]">notifications</span>
-          <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full"></span>
+        <button className="relative h-12 w-12 flex items-center justify-center rounded-3xl bg-card border border-white/5">
+          <Bell size={22} className="text-gray-300" />
+          <span className="absolute top-3.5 right-3.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-card"></span>
         </button>
       </header>
 
-      <main className="px-4 py-6 flex flex-col gap-6">
-        <section className="relative overflow-hidden rounded-2xl bg-surface-dark border border-white/5 shadow-lg p-6">
-          <div className="absolute -top-10 -right-10 h-40 w-40 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="relative z-10 flex flex-col gap-6">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-gray-400">
-                <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-                <span className="text-sm font-medium">Saldo Total</span>
+      <main className="px-6 space-y-8">
+        {/* Balance Card */}
+        <section className="relative overflow-hidden rounded-[32px] bg-card border border-white/5 shadow-2xl p-8">
+          <div className="absolute -top-20 -right-20 h-64 w-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
+          
+          <div className="relative z-10 space-y-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5 text-gray-400">
+                <WalletIcon size={18} />
+                <span className="text-sm font-bold">Saldo Total</span>
               </div>
-              <h1 className="text-4xl font-display font-bold tracking-tight text-white mt-1">
-                {formatCurrency(1250)}
+              <h1 className="text-5xl font-bold tracking-tight text-white">
+                {formatCurrency(totalBalance || 1250)}
               </h1>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="flex-1 h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
-                <span className="material-symbols-outlined">payments</span>
+
+            <div className="flex items-center gap-4">
+              <Button fullWidth variant="primary" size="lg" className="rounded-2xl h-16 text-lg">
                 Solicitar Saque
-              </button>
-              <button className="h-12 w-12 bg-white/5 hover:bg-white/10 text-white rounded-xl flex items-center justify-center transition-colors border border-white/5">
-                <span className="material-symbols-outlined">qr_code_scanner</span>
-              </button>
+              </Button>
+              <Button variant="secondary" size="icon" className="rounded-2xl h-16 w-16 shrink-0">
+                <QrCode size={24} />
+              </Button>
             </div>
           </div>
         </section>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold px-1 text-white">Histórico Financeiro</h2>
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
-            <button className="shrink-0 h-9 px-5 bg-primary text-white text-sm font-semibold rounded-full shadow-lg shadow-primary/20 transition-transform active:scale-95">
-              Todos
-            </button>
-            <button className="shrink-0 h-9 px-5 bg-surface-dark border border-white/5 text-gray-400 text-sm font-medium rounded-full hover:bg-white/5 hover:text-white transition-colors">
-              Entradas
-            </button>
-            <button className="shrink-0 h-9 px-5 bg-surface-dark border border-white/5 text-gray-400 text-sm font-medium rounded-full hover:bg-white/5 hover:text-white transition-colors">
-              Saídas
+        {/* Weekly Chart Placeholder */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">Ganhos Semanais</h2>
+            <button className="text-sm font-bold text-primary flex items-center gap-1">
+              Ver detalhes <ChevronRight size={16} />
             </button>
           </div>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          {transactions.map(transaction => (
-            <div key={transaction.id} className="group flex items-center justify-between p-4 bg-surface-dark rounded-xl border border-transparent hover:border-white/5 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center text-white shrink-0 border border-white/5">
-                  {transaction.type === 'credit' ? (
-                    <span className="material-symbols-outlined">restaurant</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-gray-400">arrow_outward</span>
+          <div className="bg-card/50 rounded-3xl border border-white/5 p-6 h-40 flex items-end justify-between gap-2">
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, i) => (
+              <div key={day} className="flex flex-col items-center gap-3 flex-1">
+                <div 
+                  className={cn(
+                    "w-full rounded-t-lg transition-all duration-500",
+                    day === 'Sex' ? "bg-primary" : "bg-white/10",
+                    i === 0 && "h-12",
+                    i === 1 && "h-8",
+                    i === 2 && "h-16",
+                    i === 3 && "h-10",
+                    i === 4 && "h-24",
+                    i === 5 && "h-14",
+                    i === 6 && "h-6",
                   )}
+                ></div>
+                <span className={cn("text-[10px] font-bold", day === 'Sex' ? "text-primary" : "text-gray-500")}>{day}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Transactions */}
+        <section className="space-y-6">
+          <h2 className="text-xl font-bold text-white">Histórico Financeiro</h2>
+          
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+            {['Todos', 'Entradas', 'Saídas', 'Pendentes'].map((filter, i) => (
+              <button 
+                key={filter}
+                className={cn(
+                  "shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all",
+                  i === 0 ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-card border border-white/5 text-gray-400 hover:text-white"
+                )}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {transactions.length > 0 ? transactions.map(transaction => (
+              <div key={transaction.id} className="flex items-center justify-between p-5 bg-card rounded-3xl border border-white/5 hover:border-white/10 transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center text-white shrink-0 border border-white/5 group-hover:bg-white/10 transition-colors">
+                    {transaction.type === 'credit' ? (
+                      <Utensils size={24} className="text-gray-300" />
+                    ) : (
+                      <ArrowUpRight size={24} className="text-gray-400" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-white font-bold text-base">{transaction.description}</h4>
+                    <p className="text-gray-500 text-xs font-bold">{formatDate(transaction.date)}</p>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-white font-bold text-base">{transaction.description}</h4>
-                  <p className="text-gray-500 text-xs font-medium">{formatDate(transaction.date)}</p>
+                <div className="text-right space-y-2">
+                  <p className="font-bold text-lg text-white">
+                    {transaction.type === 'credit' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                  </p>
+                  <Badge 
+                    variant={transaction.status === 'completed' ? 'success' : 'primary'}
+                    className="rounded-lg px-2 py-0.5"
+                  >
+                    {transaction.status === 'completed' ? 'Pago' : 'Em Processamento'}
+                  </Badge>
                 </div>
               </div>
-              <div className="text-right flex flex-col gap-0.5 items-end">
-                <p className={`font-bold text-base ${transaction.type === 'credit' ? 'text-white' : 'text-white'}`}>
-                  {transaction.type === 'credit' ? '+' : '-'} {formatCurrency(transaction.amount)}
-                </p>
-                <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md ${
-                  transaction.status === 'completed' ? 'text-green-500 bg-green-500/10' : 'text-primary bg-primary/10'
-                }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${
-                    transaction.status === 'completed' ? 'bg-green-500' : 'bg-primary animate-pulse'
-                  }`}></span> 
-                  {transaction.status === 'completed' ? 'Pago' : 'Processando'}
-                </div>
+            )) : (
+              <div className="text-center py-10">
+                <p className="text-gray-500 font-bold">Nenhuma transação encontrada.</p>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </section>
       </main>
       <BottomNav />

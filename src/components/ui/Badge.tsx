@@ -5,10 +5,9 @@ interface BadgeProps {
   variant?: 'success' | 'warning' | 'danger' | 'neutral' | 'primary';
   children: React.ReactNode;
   className?: string;
-  icon?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children, className, icon }) => {
+export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children, className }) => {
   const variants = {
     success: "bg-green-500/10 text-green-500 border-green-500/20",
     warning: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
@@ -19,11 +18,10 @@ export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children, cla
 
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border",
+      "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold border",
       variants[variant],
       className
     )}>
-      {icon && <span className="material-symbols-outlined text-[14px]">{icon}</span>}
       {children}
     </span>
   );
