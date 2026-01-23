@@ -8,17 +8,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#FF6B00',
-          hover: '#E66000',
+        background: {
+          DEFAULT: '#14110F',
+          dark: '#0A0908',
         },
-        background: '#121212',
-        card: '#1E1E1E',
-        'card-hover': '#2A2A2A',
+        card: {
+          DEFAULT: '#1C1917',
+          hover: '#262220',
+        },
+        primary: {
+          DEFAULT: '#F97316', // Orange fiel ao layout
+          hover: '#EA580C',
+        },
+        surface: {
+          DEFAULT: '#262220',
+          highlight: '#332D2A',
+        }
       },
       borderRadius: {
         '3xl': '24px',
+        '4xl': '32px',
       },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        display: ['Lexend', 'sans-serif'],
+      }
     },
   },
   plugins: [],
