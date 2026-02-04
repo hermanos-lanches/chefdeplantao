@@ -10,11 +10,20 @@ View your app in AI Studio: https://ai.studio/apps/drive/1HRu0ndSXuKm1i068IUrpJa
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Configure your environment variables (copy `.env.example` to `.env.local` and fill in the values):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_GOOGLE_MAPS_API_KEY`
 3. Run the app:
    `npm run dev`
+
+## Deploy (Vercel)
+
+1. Push this repo to GitHub.
+2. Create a new Vercel project pointing to the repo.
+3. Add the same environment variables from `.env.example` to Vercel (Production, Preview, and Development as needed).
+4. Deploy. Vercel will run `npm run build` automatically.
